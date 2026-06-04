@@ -58,6 +58,15 @@
     <div id="log-empty">No rolls yet</div>
   </div>
 
+  <!-- Mobile bottom bar (hidden on desktop) -->
+  <div id="mobile-bar">
+    <button id="diceToggleBtn" aria-label="Dice selection">🎲</button>
+    <button id="rollBtnMobile" disabled>ROLL</button>
+    <button id="logToggleBtn" aria-label="Roll log">☰</button>
+  </div>
+  <!-- Overlay — drawer dışına basınca kapatır -->
+  <div id="mobile-overlay"></div>
+
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>

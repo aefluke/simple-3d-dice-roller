@@ -304,3 +304,154 @@ body {
   opacity: 0.35;
   cursor: not-allowed;
 }
+
+/* ─── Mobile (≤ 640px) ───────────────────────────────── */
+#mobile-bar,
+#mobile-overlay {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  /* Desktop panellerini drawer'a dönüştür */
+  #panel {
+    top: auto;
+    bottom: 88px;
+    left: 50%;
+    right: auto;
+    width: calc(100vw - 32px);
+    max-width: 420px;
+    transform: translateX(-50%) translateY(calc(100% + 100px));
+    transition: transform 0.32s cubic-bezier(0.34, 1.15, 0.64, 1);
+    z-index: 95;
+  }
+
+  #panel.open {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  #panel #rollBtn {
+    display: none;
+  }
+
+  .panel-title {
+    display: none;
+  }
+
+  #log-panel {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: auto;
+    max-height: 100dvh;
+    width: min(85vw, 300px);
+    border-radius: 18px 0 0 18px;
+    transform: translateX(110%);
+    transition: transform 0.32s cubic-bezier(0.34, 1.15, 0.64, 1);
+    z-index: 95;
+  }
+
+  #log-panel.open {
+    transform: translateX(0);
+  }
+
+  /* Overlay */
+  #mobile-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+    z-index: 90;
+  }
+
+  #mobile-overlay.active {
+    display: block;
+  }
+
+  /* Alt bar */
+  #mobile-bar {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 72px;
+    padding: 0 20px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    align-items: center;
+    gap: 12px;
+    background: rgba(10, 15, 35, 0.94);
+    border-top: 1px solid rgba(100, 160, 255, 0.18);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
+    z-index: 100;
+  }
+
+  #diceToggleBtn,
+  #logToggleBtn {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    background: rgba(60, 100, 200, 0.25);
+    border: 1px solid rgba(100, 160, 255, 0.3);
+    border-radius: 12px;
+    color: #b0d4ff;
+    font-size: 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, border-color 0.15s;
+    padding: 0;
+  }
+
+  #diceToggleBtn:hover,
+  #logToggleBtn:hover {
+    background: rgba(80, 140, 255, 0.38);
+  }
+
+  #diceToggleBtn.active,
+  #logToggleBtn.active {
+    background: rgba(80, 140, 255, 0.5);
+    border-color: rgba(100, 160, 255, 0.65);
+    color: #fff;
+  }
+
+  #rollBtnMobile {
+    flex: 1;
+    height: 48px;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #fff;
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(80, 120, 255, 0.4);
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
+  }
+
+  #rollBtnMobile:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(80, 120, 255, 0.6);
+  }
+
+  #rollBtnMobile:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+
+  #rollBtnMobile:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  /* Daha büyük dokunma hedefleri */
+  .die-controls button {
+    width: 40px;
+    height: 40px;
+    border-radius: 9px;
+    font-size: 20px;
+  }
+}

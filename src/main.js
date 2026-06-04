@@ -13,6 +13,7 @@ const DIE_TYPES = ['d6', 'd10', 'd20']
 const canvas = document.getElementById('canvas')
 const labelsContainer = document.getElementById('labels')
 const rollBtn = document.getElementById('rollBtn')
+const rollBtnMobile = document.getElementById('rollBtnMobile')
 
 const { renderer, scene, camera } = createScene(canvas)
 const world = createWorld()
@@ -156,6 +157,7 @@ document.getElementById('clearLogBtn').addEventListener('click', () => {
 function updateUI() {
   const total = instances.length
   rollBtn.disabled = rolling || total === 0
+  if (rollBtnMobile) rollBtnMobile.disabled = rolling || total === 0
 
   DIE_TYPES.forEach(type => {
     const count = counts[type]
@@ -182,6 +184,47 @@ document.addEventListener('keydown', e => {
 })
 document.querySelectorAll('.add-btn').forEach(btn => btn.addEventListener('click', () => addDie(btn.dataset.type)))
 document.querySelectorAll('.remove-btn').forEach(btn => btn.addEventListener('click', () => removeDie(btn.dataset.type)))
+
+// ─── Mobile wiring ────────────────────────────────────────────────────────────
+if (rollBtnMobile) {
+  const panel        = document.getElementById('panel')
+  const logPanel     = document.getElementById('log-panel')
+  const mobileOverlay = document.getElementById('mobile-overlay')
+  const diceToggleBtn = document.getElementById('diceToggleBtn')
+  const logToggleBtn  = document.getElementById('logToggleBtn')
+
+  function closeAll() {
+    panel.classList.remove('open')
+    logPanel.classList.remove('open')
+    diceToggleBtn.classList.remove('active')
+    logToggleBtn.classList.remove('active')
+    mobileOverlay.classList.remove('active')
+  }
+
+  rollBtnMobile.addEventListener('click', rollAll)
+
+  diceToggleBtn.addEventListener('click', () => {
+    const opening = !panel.classList.contains('open')
+    closeAll()
+    if (opening) {
+      panel.classList.add('open')
+      diceToggleBtn.classList.add('active')
+      mobileOverlay.classList.add('active')
+    }
+  })
+
+  logToggleBtn.addEventListener('click', () => {
+    const opening = !logPanel.classList.contains('open')
+    closeAll()
+    if (opening) {
+      logPanel.classList.add('open')
+      logToggleBtn.classList.add('active')
+      mobileOverlay.classList.add('active')
+    }
+  })
+
+  mobileOverlay.addEventListener('click', closeAll)
+}
 
 // ─── Animation loop ───────────────────────────────────────────────────────────
 const clock = new THREE.Clock()

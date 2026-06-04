@@ -1,0 +1,306 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  overflow: hidden;
+  background: #0d0d1a;
+  font-family: 'Arial', sans-serif;
+  color: #fff;
+}
+
+#canvas {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* ─── Floating result labels ─────────────────────────── */
+#labels {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.die-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: 26px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 0 12px #4af, 0 0 30px #4af;
+  background: rgba(10, 20, 50, 0.75);
+  border: 1px solid rgba(100, 180, 255, 0.4);
+  border-radius: 12px;
+  padding: 4px 14px;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.5);
+  transition: opacity 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+              transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.die-label.visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* ─── Left panel ─────────────────────────────────────── */
+#panel {
+  position: fixed;
+  top: 50%;
+  left: 20px;
+  transform: translateY(-50%);
+  width: 200px;
+  background: rgba(10, 15, 35, 0.88);
+  border: 1px solid rgba(100, 160, 255, 0.2);
+  border-radius: 18px;
+  padding: 24px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04) inset;
+  user-select: none;
+}
+
+.panel-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: rgba(150, 200, 255, 0.7);
+  text-align: center;
+}
+
+/* ─── Die rows ───────────────────────────────────────── */
+.die-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.die-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.die-name {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: rgba(200, 225, 255, 0.9);
+  min-width: 36px;
+}
+
+.die-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.die-count {
+  font-size: 16px;
+  font-weight: 700;
+  min-width: 22px;
+  text-align: center;
+  color: #fff;
+}
+
+.die-controls button {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  border: 1px solid rgba(100, 160, 255, 0.35);
+  background: rgba(60, 100, 200, 0.25);
+  color: #b0d4ff;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s, opacity 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.die-controls button:hover:not(:disabled) {
+  background: rgba(80, 140, 255, 0.45);
+  color: #fff;
+}
+
+.die-controls button:active:not(:disabled) {
+  transform: scale(0.9);
+}
+
+.die-controls button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ─── Right log panel ───────────────────────────────── */
+#log-panel {
+  position: fixed;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  width: 220px;
+  max-height: 70vh;
+  background: rgba(10, 15, 35, 0.88);
+  border: 1px solid rgba(100, 160, 255, 0.2);
+  border-radius: 18px;
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04) inset;
+  user-select: none;
+}
+
+.log-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.log-panel-header .panel-title {
+  text-align: left;
+}
+
+#clearLogBtn {
+  width: 22px;
+  height: 22px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  color: rgba(200,220,255,0.5);
+  font-size: 10px;
+  cursor: pointer;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+#clearLogBtn:hover {
+  background: rgba(255,80,80,0.2);
+  color: #ff8080;
+}
+
+#log-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100,160,255,0.3) transparent;
+}
+
+#log-empty {
+  font-size: 12px;
+  color: rgba(150,180,255,0.35);
+  text-align: center;
+  padding: 8px 0;
+}
+
+.log-entry {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  padding: 8px 10px;
+  animation: logFadeIn 0.3s ease;
+}
+
+@keyframes logFadeIn {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 5px;
+}
+
+.log-num {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(180, 210, 255, 0.6);
+  letter-spacing: 1px;
+}
+
+.log-time {
+  font-size: 10px;
+  color: rgba(150, 180, 255, 0.35);
+}
+
+.log-total {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.log-dice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.log-die {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 5px;
+  letter-spacing: 0.5px;
+}
+
+.log-die.log-d6  { background: rgba(194,65,12,0.35);  color: #fb923c; border: 1px solid rgba(194,65,12,0.4); }
+.log-die.log-d10 { background: rgba(124,58,237,0.35); color: #c4b5fd; border: 1px solid rgba(124,58,237,0.4); }
+.log-die.log-d20 { background: rgba(37,99,235,0.35);  color: #93c5fd; border: 1px solid rgba(37,99,235,0.4); }
+
+/* ─── Roll button ────────────────────────────────────── */
+#rollBtn {
+  padding: 13px;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(80, 120, 255, 0.4);
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
+  width: 100%;
+}
+
+#rollBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(80, 120, 255, 0.6);
+}
+
+#rollBtn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+#rollBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}

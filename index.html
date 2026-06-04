@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dice Roller</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+
+  <!-- Floating result labels (positioned in JS) -->
+  <div id="labels"></div>
+
+  <!-- Left panel -->
+  <div id="panel">
+    <div class="panel-title">Dice Roller</div>
+
+    <div class="die-list">
+      <div class="die-row">
+        <span class="die-name">D6</span>
+        <div class="die-controls">
+          <button class="remove-btn" data-type="d6" disabled>−</button>
+          <span class="die-count" data-type="d6">0</span>
+          <button class="add-btn" data-type="d6">+</button>
+        </div>
+      </div>
+
+      <div class="die-row">
+        <span class="die-name">D10</span>
+        <div class="die-controls">
+          <button class="remove-btn" data-type="d10" disabled>−</button>
+          <span class="die-count" data-type="d10">0</span>
+          <button class="add-btn" data-type="d10">+</button>
+        </div>
+      </div>
+
+      <div class="die-row">
+        <span class="die-name">D20</span>
+        <div class="die-controls">
+          <button class="remove-btn" data-type="d20" disabled>−</button>
+          <span class="die-count" data-type="d20">0</span>
+          <button class="add-btn" data-type="d20">+</button>
+        </div>
+      </div>
+    </div>
+
+    <button id="rollBtn" disabled>Roll</button>
+  </div>
+
+  <!-- Right log panel -->
+  <div id="log-panel">
+    <div class="log-panel-header">
+      <span class="panel-title">Roll Log</span>
+      <button id="clearLogBtn" title="Clear log">✕</button>
+    </div>
+    <div id="log-entries"></div>
+    <div id="log-empty">No rolls yet</div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

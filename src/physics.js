@@ -17,6 +17,23 @@ const D20_FACES_IDX = [
   [4,9,5],[2,4,11],[6,2,10],[8,6,7],[9,8,1],
 ]
 
+// D4 (tetrahedron) vertices and faces
+const D4_RAW = [
+  [ 1,  1,  1], [ 1, -1, -1], [-1,  1, -1], [-1, -1,  1],
+]
+const D4_FACES_IDX = [
+  [0, 1, 2], [0, 3, 1], [0, 2, 3], [1, 3, 2],
+]
+
+// D8 (octahedron) vertices and faces
+const D8_RAW = [
+  [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1],
+]
+const D8_FACES_IDX = [
+  [2, 4, 0], [2, 1, 4], [2, 5, 1], [2, 0, 5],
+  [3, 0, 4], [3, 4, 1], [3, 1, 5], [3, 5, 0],
+]
+
 // D10 (pentagonal bipyramid) faces
 const D10_FACES_IDX = [
   [0,3,2],[0,4,3],[0,5,4],[0,6,5],[0,2,6],
@@ -41,9 +58,16 @@ export function createWorld() {
 export function createDiceBody(type, radius = 1) {
   let shape
 
-  if (type === 'd6') {
+  if (type === 'd4') {
+    const scale = radius / Math.sqrt(3)
+    const vertices = D4_RAW.map(([x, y, z]) => new CANNON.Vec3(x * scale, y * scale, z * scale))
+    shape = new CANNON.ConvexPolyhedron({ vertices, faces: D4_FACES_IDX })
+  } else if (type === 'd6') {
     const s = radius / Math.sqrt(3)  // half-side matching dice.js
     shape = new CANNON.Box(new CANNON.Vec3(s, s, s))
+  } else if (type === 'd8') {
+    const vertices = D8_RAW.map(([x, y, z]) => new CANNON.Vec3(x * radius, y * radius, z * radius))
+    shape = new CANNON.ConvexPolyhedron({ vertices, faces: D8_FACES_IDX })
   } else if (type === 'd20') {
     const scale = radius / ICO_LEN
     const vertices = D20_RAW.map(([x, y, z]) => new CANNON.Vec3(x * scale, y * scale, z * scale))

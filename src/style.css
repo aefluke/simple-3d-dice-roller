@@ -67,6 +67,13 @@ body {
   user-select: none;
 }
 
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
 .panel-title {
   font-size: 13px;
   font-weight: 700;
@@ -74,6 +81,36 @@ body {
   text-transform: uppercase;
   color: rgba(150, 200, 255, 0.7);
   text-align: center;
+}
+
+#clearDiceBtn {
+  position: absolute;
+  right: 0;
+  width: 22px;
+  height: 22px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  color: rgba(200,220,255,0.5);
+  font-size: 10px;
+  cursor: pointer;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+#clearDiceBtn:hover:not(:disabled) {
+  background: rgba(255,80,80,0.2);
+  color: #ff8080;
+}
+
+#clearDiceBtn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
 }
 
 /* ─── Die rows ───────────────────────────────────────── */
@@ -270,7 +307,9 @@ body {
   letter-spacing: 0.5px;
 }
 
+.log-die.log-d4  { background: rgba(161,21,144,0.35); color: #f0abfc; border: 1px solid rgba(161,21,144,0.4); }
 .log-die.log-d6  { background: rgba(194,65,12,0.35);  color: #fb923c; border: 1px solid rgba(194,65,12,0.4); }
+.log-die.log-d8  { background: rgba(15,118,110,0.35); color: #5eead4; border: 1px solid rgba(15,118,110,0.4); }
 .log-die.log-d10 { background: rgba(124,58,237,0.35); color: #c4b5fd; border: 1px solid rgba(124,58,237,0.4); }
 .log-die.log-d20 { background: rgba(37,99,235,0.35);  color: #93c5fd; border: 1px solid rgba(37,99,235,0.4); }
 
@@ -333,7 +372,7 @@ body {
     display: none;
   }
 
-  .panel-title {
+  .panel-header {
     display: none;
   }
 

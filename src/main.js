@@ -8,7 +8,7 @@ import { getTopFace } from './result.js'
 const RADIUS = 1
 const MAX_PER_TYPE = 4
 const ROLL_TIMEOUT_MS = 12000  // force-settle after 12s
-const DIE_TYPES = ['d6', 'd10', 'd20']
+const DIE_TYPES = ['d4', 'd6', 'd8', 'd10', 'd20']
 
 const canvas = document.getElementById('canvas')
 const labelsContainer = document.getElementById('labels')
@@ -26,6 +26,7 @@ const counts = {}
 DIE_TYPES.forEach(t => (counts[t] = 0))
 
 let rolling = false
+let rollBtnCooldown = false
 let rollStartTime = 0
 let rollCount = 0
 
@@ -96,9 +97,11 @@ function removeDie(type) {
 
 // ─── Rolling ──────────────────────────────────────────────────────────────────
 function rollAll() {
-  if (rolling || instances.length === 0) return
+  if (rollBtnCooldown || instances.length === 0) return
   rolling = true
+  rollBtnCooldown = true
   rollStartTime = performance.now()
+  setTimeout(() => { rollBtnCooldown = false; updateUI() }, 1000)
 
   instances.forEach(die => {
     die.settled = false
@@ -156,8 +159,9 @@ document.getElementById('clearLogBtn').addEventListener('click', () => {
 // ─── UI ───────────────────────────────────────────────────────────────────────
 function updateUI() {
   const total = instances.length
-  rollBtn.disabled = rolling || total === 0
-  if (rollBtnMobile) rollBtnMobile.disabled = rolling || total === 0
+  rollBtn.disabled = rollBtnCooldown || total === 0
+  if (rollBtnMobile) rollBtnMobile.disabled = rollBtnCooldown || total === 0
+  document.getElementById('clearDiceBtn').disabled = rolling || total === 0
 
   DIE_TYPES.forEach(type => {
     const count = counts[type]
@@ -177,8 +181,14 @@ function updateLabelPos(die) {
   die.label.style.top = ((-pos.y + 1) / 2) * h + 'px'
 }
 
+function clearAllDice() {
+  if (rolling) return
+  while (instances.length) removeDie(instances[instances.length - 1].type)
+}
+
 // ─── Panel wiring ─────────────────────────────────────────────────────────────
 rollBtn.addEventListener('click', rollAll)
+document.getElementById('clearDiceBtn').addEventListener('click', clearAllDice)
 document.addEventListener('keydown', e => {
   if ((e.code === 'Space' || e.code === 'Enter') && !e.repeat) rollAll()
 })

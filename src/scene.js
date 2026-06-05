@@ -20,7 +20,7 @@ export function createScene(canvas) {
   camera.lookAt(0, 0, 0)
 
   // Lights
-  scene.add(new THREE.AmbientLight(0xffffff, 0.45))
+  scene.add(new THREE.AmbientLight(0xffffff, 0.65))
 
   const sun = new THREE.DirectionalLight(0xffffff, 1.6)
   sun.position.set(4, 12, 4)
@@ -48,45 +48,6 @@ export function createScene(canvas) {
   outerFloor.position.y = -0.01
   scene.add(outerFloor)
 
-  // Tray floor (inside walls)
-  const trayFloor = new THREE.Mesh(
-    new THREE.CircleGeometry(TRAY_R, 64),
-    new THREE.MeshStandardMaterial({ color: 0x111830, roughness: 0.85, metalness: 0.05 })
-  )
-  trayFloor.rotation.x = -Math.PI / 2
-  trayFloor.receiveShadow = true
-  scene.add(trayFloor)
-
-  // Tray wall (cylinder, rendered from outside so we see the inner face)
-  const wallMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(TRAY_R, TRAY_R, 1.4, 64, 1, true),
-    new THREE.MeshStandardMaterial({
-      color: 0x1a2d60,
-      roughness: 0.5,
-      metalness: 0.6,
-      side: THREE.BackSide,
-    })
-  )
-  wallMesh.position.y = 0.7
-  scene.add(wallMesh)
-
-  // Tray rim — glowing top edge (torus)
-  const rimTorus = new THREE.Mesh(
-    new THREE.TorusGeometry(TRAY_R, 0.07, 8, 64),
-    new THREE.MeshStandardMaterial({ color: 0x4080ff, emissive: 0x2050bb, metalness: 0.8, roughness: 0.2 })
-  )
-  rimTorus.rotation.x = Math.PI / 2
-  rimTorus.position.y = 1.4
-  scene.add(rimTorus)
-
-  // Subtle glow ring at floor level inside tray
-  const glowRing = new THREE.Mesh(
-    new THREE.RingGeometry(TRAY_R - 0.15, TRAY_R, 64),
-    new THREE.MeshBasicMaterial({ color: 0x3060cc, transparent: true, opacity: 0.25, side: THREE.DoubleSide })
-  )
-  glowRing.rotation.x = -Math.PI / 2
-  glowRing.position.y = 0.02
-  scene.add(glowRing)
 
   function onResize() {
     const w = window.innerWidth

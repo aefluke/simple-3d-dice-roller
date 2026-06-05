@@ -2,12 +2,12 @@ import * as THREE from 'three'
 
 // ─── Color palettes ───────────────────────────────────────────────────────────
 const PALETTES = [
-  { bg: '#0f2d6e', face: '#1d4ed8', rim: '#60a5fa' },
-  { bg: '#14532d', face: '#15803d', rim: '#4ade80' },
-  { bg: '#7c2d12', face: '#c2410c', rim: '#fb923c' },
-  { bg: '#4a1d96', face: '#7c3aed', rim: '#c4b5fd' },
-  { bg: '#881337', face: '#be123c', rim: '#fb7185' },
-  { bg: '#134e4a', face: '#0f766e', rim: '#5eead4' },
+  { bg: '#6080c8', face: '#4060b0', rim: '#90b8f8', fg: '#ffffff', tint: 0xddeeff },  // sky opal
+  { bg: '#3a9878', face: '#2a7858', rim: '#70e0b8', fg: '#ffffff', tint: 0xddfff4 },  // mint opal
+  { bg: '#b84870', face: '#982858', rim: '#f890b8', fg: '#ffffff', tint: 0xffddec },  // rose opal
+  { bg: '#7848c8', face: '#5828a8', rim: '#c090f8', fg: '#ffffff', tint: 0xeeddff },  // violet opal
+  { bg: '#b88820', face: '#987000', rim: '#f8d060', fg: '#ffffff', tint: 0xfff4cc },  // amber opal
+  { bg: '#208888', face: '#006868', rim: '#60e0e0', fg: '#ffffff', tint: 0xddfff8 },  // teal opal
 ]
 
 export function randomPalette() {
@@ -59,7 +59,7 @@ function buildAtlas(faceNumbers, palette) {
     ctx.font = `900 ${fontSize}px Arial`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillStyle = '#ffffff'
+    ctx.fillStyle = palette.fg
     ctx.shadowColor = palette.rim
     ctx.shadowBlur = 12
     ctx.fillText(String(num), cx, cy + 3)
@@ -69,7 +69,7 @@ function buildAtlas(faceNumbers, palette) {
     if (num === 6 || num === 9) {
       const tw = ctx.measureText(String(num)).width
       const uy = cy + fontSize * 0.58
-      ctx.fillStyle = '#ffffff'
+      ctx.fillStyle = palette.fg
       ctx.beginPath()
       ctx.roundRect(cx - tw * 0.42, uy, tw * 0.84, 6, 3)
       ctx.fill()
@@ -77,6 +77,27 @@ function buildAtlas(faceNumbers, palette) {
   })
 
   return canvas
+}
+
+// ─── Opal material factory ────────────────────────────────────────────────────
+function makeDiceMat(tex, palette) {
+  return new THREE.MeshPhysicalMaterial({
+    map: tex,
+    color: new THREE.Color(palette.tint),
+    roughness: 0.12,
+    metalness: 0,
+    transmission: 0.5,
+    thickness: 1.2,
+    ior: 1.45,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.08,
+    sheen: 0.6,
+    sheenRoughness: 0.3,
+    sheenColor: new THREE.Color(palette.rim),
+    iridescence: 0.65,
+    iridescenceIOR: 1.3,
+    iridescenceThicknessRange: [100, 400],
+  })
 }
 
 // ─── UV helpers ───────────────────────────────────────────────────────────────
@@ -179,7 +200,7 @@ function buildD20Geo(radius, palette) {
   const atlas = buildAtlas(faceNumbers, palette)
   const tex = new THREE.CanvasTexture(atlas)
   tex.colorSpace = THREE.SRGBColorSpace
-  const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.3, metalness: 0.5 })
+  const mat = makeDiceMat(tex, palette)
   const mesh = new THREE.Mesh(geo, mat)
   mesh.castShadow = true
 
@@ -272,11 +293,217 @@ function buildD6Geo(radius, palette) {
   const atlas = buildAtlas(faceNumbers.sort((a,b)=>a-b), palette)
   const tex = new THREE.CanvasTexture(atlas)
   tex.colorSpace = THREE.SRGBColorSpace
-  const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.25, metalness: 0.4 })
+  const mat = makeDiceMat(tex, palette)
   const mesh = new THREE.Mesh(geo, mat)
   mesh.castShadow = true
 
   return { mesh, faceNormals, faceNumbers: D6_QUADS.map(q => q.num) }
+}
+
+// ─── Geometry builder: d4 (tetrahedron) ──────────────────────────────────────
+// 4 vertices, 4 triangular faces. Result = top VERTEX (apex pointing up).
+// Each face shows 3 numbers, one near each corner.
+const D4_CIRCUMR = Math.sqrt(3)
+
+const D4_RAW_VERTS = [
+  [ 1,  1,  1],  // v0 → die 1
+  [ 1, -1, -1],  // v1 → die 2
+  [-1,  1, -1],  // v2 → die 3
+  [-1, -1,  1],  // v3 → die 4
+]
+
+// vertex index to die number
+const D4_VERTEX_NUMS = [1, 2, 3, 4]
+
+// [i0, i1, i2] — CCW from outside; i0→apex UV, i1→base-left UV, i2→base-right UV
+const D4_FACE_VERTS = [
+  [0, 1, 2],  // normal ≈ ( 1, 1,-1)
+  [0, 3, 1],  // normal ≈ ( 1,-1, 1)
+  [0, 2, 3],  // normal ≈ (-1, 1, 1)
+  [1, 3, 2],  // normal ≈ (-1,-1,-1)
+]
+
+// Each face cell shows 3 vertex numbers near the triangle corners.
+// Corner positions in canvas pixels come from setTriUV geometry (H=cell*0.82, W=cell*0.44).
+function buildD4Atlas(palette) {
+  const cell = 256
+  const cols = 2, rows = 2
+  const canvas = document.createElement('canvas')
+  canvas.width = cell * cols
+  canvas.height = cell * rows
+  const ctx = canvas.getContext('2d')
+
+  ctx.fillStyle = palette.bg
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+  const H = cell * 0.82
+  const W = cell * 0.44
+  // Pull labels 55 % of the way from center toward vertex
+  const INSET = 0.55
+  const rel = [
+    { dx: 0,       dy: -(2 / 3) * H * INSET },  // apex (face vertex 0)
+    { dx: -W * INSET, dy:  (1 / 3) * H * INSET },  // base-left (face vertex 1)
+    { dx:  W * INSET, dy:  (1 / 3) * H * INSET },  // base-right (face vertex 2)
+  ]
+
+  D4_FACE_VERTS.forEach(([i0, i1, i2], fi) => {
+    const col = fi % cols
+    const row = Math.floor(fi / cols)
+    const cx = col * cell + cell / 2
+    const cy = row * cell + cell / 2
+
+    // Triangle background (full extent, un-inset)
+    const pts = rel.map(({ dx, dy }) => [cx + dx / INSET, cy + dy / INSET])
+    const grad = ctx.createRadialGradient(cx, cy, 4, cx, cy, H * 0.68)
+    grad.addColorStop(0, palette.face)
+    grad.addColorStop(1, palette.bg)
+    ctx.beginPath()
+    ctx.moveTo(...pts[0])
+    ctx.lineTo(...pts[1])
+    ctx.lineTo(...pts[2])
+    ctx.closePath()
+    ctx.fillStyle = grad
+    ctx.fill()
+    ctx.strokeStyle = palette.rim + '55'
+    ctx.lineWidth = 3
+    ctx.stroke()
+
+    // Number near each corner, rotated so its top points toward that corner
+    const nums = [D4_VERTEX_NUMS[i0], D4_VERTEX_NUMS[i1], D4_VERTEX_NUMS[i2]]
+    nums.forEach((num, vi) => {
+      const { dx, dy } = rel[vi]
+      const angle = Math.atan2(dy, dx) + Math.PI / 2
+      ctx.save()
+      ctx.translate(cx + dx, cy + dy)
+      ctx.rotate(angle)
+      ctx.font = '900 56px Arial'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillStyle = palette.fg
+      ctx.shadowColor = palette.rim
+      ctx.shadowBlur = 10
+      ctx.fillText(String(num), 0, 0)
+      ctx.shadowBlur = 0
+      ctx.restore()
+    })
+  })
+
+  return canvas
+}
+
+function buildD4Geo(radius, palette) {
+  const scale = radius / D4_CIRCUMR
+  const verts = D4_RAW_VERTS.map(([x, y, z]) => [x * scale, y * scale, z * scale])
+  const N = D4_FACE_VERTS.length
+  const cols = 2, rows = 2
+
+  const pos = new Float32Array(N * 9)
+  const nrm = new Float32Array(N * 9)
+  const uvArr = new Float32Array(N * 6)
+
+  D4_FACE_VERTS.forEach(([i0, i1, i2], fi) => {
+    const a = new THREE.Vector3(...verts[i0])
+    const b = new THREE.Vector3(...verts[i1])
+    const c = new THREE.Vector3(...verts[i2])
+    const normal = new THREE.Vector3()
+      .crossVectors(new THREE.Vector3().subVectors(b, a), new THREE.Vector3().subVectors(c, a))
+      .normalize()
+
+    const base = fi * 9
+    pos.set([...verts[i0], ...verts[i1], ...verts[i2]], base)
+    for (let v = 0; v < 3; v++) {
+      nrm[base + v * 3]     = normal.x
+      nrm[base + v * 3 + 1] = normal.y
+      nrm[base + v * 3 + 2] = normal.z
+    }
+
+    const { u0, u1, v0, v1 } = cellUV(fi, cols, rows)
+    setTriUV(uvArr, fi, u0, u1, v0, v1)
+  })
+
+  const geo = new THREE.BufferGeometry()
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+  geo.setAttribute('normal', new THREE.BufferAttribute(nrm, 3))
+  geo.setAttribute('uv', new THREE.BufferAttribute(uvArr, 2))
+
+  const atlas = buildD4Atlas(palette)
+  const tex = new THREE.CanvasTexture(atlas)
+  tex.colorSpace = THREE.SRGBColorSpace
+  const mat = makeDiceMat(tex, palette)
+  const mesh = new THREE.Mesh(geo, mat)
+  mesh.castShadow = true
+
+  // Result detection: use vertex directions — getTopFace finds the apex vertex pointing up
+  const faceNormals = D4_RAW_VERTS.map(([x, y, z]) => {
+    const len = Math.sqrt(x * x + y * y + z * z)
+    return new THREE.Vector3(x / len, y / len, z / len)
+  })
+
+  return { mesh, faceNormals, faceNumbers: D4_VERTEX_NUMS }
+}
+
+// ─── Geometry builder: d8 (octahedron) ───────────────────────────────────────
+// 6 vertices, 8 triangular faces. Opposite faces sum to 9.
+const D8_RAW_VERTS = [
+  [1, 0, 0],   // 0: +X
+  [-1, 0, 0],  // 1: -X
+  [0, 1, 0],   // 2: +Y (top pole)
+  [0, -1, 0],  // 3: -Y (bottom pole)
+  [0, 0, 1],   // 4: +Z
+  [0, 0, -1],  // 5: -Z
+]
+
+// [v0, v1, v2, dieNumber] — outward-facing winding, opposite faces sum to 9
+const D8_FACES = [
+  [2, 4, 0, 1], [2, 1, 4, 2], [2, 5, 1, 3], [2, 0, 5, 4], // upper
+  [3, 0, 4, 6], [3, 4, 1, 5], [3, 1, 5, 8], [3, 5, 0, 7], // lower
+]
+
+function buildD8Geo(radius, palette) {
+  const verts = D8_RAW_VERTS.map(([x, y, z]) => [x * radius, y * radius, z * radius])
+  const N = D8_FACES.length
+  const cols = Math.ceil(Math.sqrt(N)), rows = Math.ceil(N / cols)  // matches buildAtlas layout
+
+  const pos = new Float32Array(N * 9)
+  const nrm = new Float32Array(N * 9)
+  const uvArr = new Float32Array(N * 6)
+  const faceNormals = []
+  const faceNumbers = D8_FACES.map(f => f[3])
+
+  D8_FACES.forEach(([i0, i1, i2], fi) => {
+    const a = new THREE.Vector3(...verts[i0])
+    const b = new THREE.Vector3(...verts[i1])
+    const c = new THREE.Vector3(...verts[i2])
+    const normal = new THREE.Vector3()
+      .crossVectors(new THREE.Vector3().subVectors(b, a), new THREE.Vector3().subVectors(c, a))
+      .normalize()
+    faceNormals.push(normal.clone())
+
+    const base = fi * 9
+    pos.set([...verts[i0], ...verts[i1], ...verts[i2]], base)
+    for (let v = 0; v < 3; v++) {
+      nrm[base + v * 3]     = normal.x
+      nrm[base + v * 3 + 1] = normal.y
+      nrm[base + v * 3 + 2] = normal.z
+    }
+
+    const { u0, u1, v0, v1 } = cellUV(fi, cols, rows)
+    setTriUV(uvArr, fi, u0, u1, v0, v1)
+  })
+
+  const geo = new THREE.BufferGeometry()
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+  geo.setAttribute('normal', new THREE.BufferAttribute(nrm, 3))
+  geo.setAttribute('uv', new THREE.BufferAttribute(uvArr, 2))
+
+  const atlas = buildAtlas(faceNumbers, palette)
+  const tex = new THREE.CanvasTexture(atlas)
+  tex.colorSpace = THREE.SRGBColorSpace
+  const mat = makeDiceMat(tex, palette)
+  const mesh = new THREE.Mesh(geo, mat)
+  mesh.castShadow = true
+
+  return { mesh, faceNormals, faceNumbers }
 }
 
 // ─── Geometry builder: d10 (pentagonal bipyramid) ─────────────────────────────
@@ -338,7 +565,7 @@ function buildD10Geo(radius, palette) {
   const atlas = buildAtlas(faceNumbers, palette)
   const tex = new THREE.CanvasTexture(atlas)
   tex.colorSpace = THREE.SRGBColorSpace
-  const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.28, metalness: 0.45 })
+  const mat = makeDiceMat(tex, palette)
   const mesh = new THREE.Mesh(geo, mat)
   mesh.castShadow = true
 
@@ -350,7 +577,9 @@ export function buildDie(type, radius = 1) {
   const palette = randomPalette()
   let result
   switch (type) {
+    case 'd4':  result = buildD4Geo(radius, palette);  break
     case 'd6':  result = buildD6Geo(radius, palette);  break
+    case 'd8':  result = buildD8Geo(radius, palette);  break
     case 'd10': result = buildD10Geo(radius, palette); break
     case 'd20': result = buildD20Geo(radius, palette); break
     default: throw new Error(`Unknown die type: ${type}`)

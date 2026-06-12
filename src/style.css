@@ -311,7 +311,9 @@ body {
 .log-die.log-d6  { background: rgba(194,65,12,0.35);  color: #fb923c; border: 1px solid rgba(194,65,12,0.4); }
 .log-die.log-d8  { background: rgba(15,118,110,0.35); color: #5eead4; border: 1px solid rgba(15,118,110,0.4); }
 .log-die.log-d10 { background: rgba(124,58,237,0.35); color: #c4b5fd; border: 1px solid rgba(124,58,237,0.4); }
-.log-die.log-d20 { background: rgba(37,99,235,0.35);  color: #93c5fd; border: 1px solid rgba(37,99,235,0.4); }
+.log-die.log-d20   { background: rgba(37,99,235,0.35);  color: #93c5fd; border: 1px solid rgba(37,99,235,0.4); }
+.log-die.log-dfate { background: rgba(120,30,160,0.35); color: #d080ff; border: 1px solid rgba(120,30,160,0.4); }
+.log-die.log-coin  { background: rgba(200,170,60,0.35);  color: #ffe89a; border: 1px solid rgba(200,170,60,0.4); }
 
 /* ─── Roll button ────────────────────────────────────── */
 #rollBtn {

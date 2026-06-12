@@ -572,16 +572,255 @@ function buildD10Geo(radius, palette) {
   return { mesh, faceNormals, faceNumbers }
 }
 
+// ─── Geometry builder: dFate (Fate/Fudge die) ────────────────────────────────
+// 6-sided cube (same shape as D6). Faces: 2× blank (0), 2× plus (+1), 2× minus (-1).
+const FATE_QUADS = [
+  { vi: [0,1,2,3], normal: [0,0,1],  value:  0, atlasIdx: 0 }, // blank +Z
+  { vi: [5,4,7,6], normal: [0,0,-1], value:  0, atlasIdx: 1 }, // blank -Z
+  { vi: [1,5,6,2], normal: [1,0,0],  value:  1, atlasIdx: 2 }, // plus  +X
+  { vi: [4,0,3,7], normal: [-1,0,0], value:  1, atlasIdx: 3 }, // plus  -X
+  { vi: [3,2,6,7], normal: [0,1,0],  value: -1, atlasIdx: 4 }, // minus +Y
+  { vi: [4,5,1,0], normal: [0,-1,0], value: -1, atlasIdx: 5 }, // minus -Y
+]
+
+function buildDFateAtlas(palette) {
+  const cols = 3, rows = 2
+  const cell = 256
+  const canvas = document.createElement('canvas')
+  canvas.width = cell * cols
+  canvas.height = cell * rows
+  const ctx = canvas.getContext('2d')
+
+  ctx.fillStyle = palette.bg
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+  // atlasIdx 0,1 = blank; 2,3 = "+"; 4,5 = "−"
+  const symbols = [null, null, '+', '+', '−', '−']
+
+  symbols.forEach((sym, i) => {
+    const col = i % cols
+    const row = Math.floor(i / cols)
+    const cx = col * cell + cell / 2
+    const cy = row * cell + cell / 2
+
+    const grad = ctx.createRadialGradient(cx, cy, 8, cx, cy, cell * 0.44)
+    grad.addColorStop(0, palette.face)
+    grad.addColorStop(1, palette.bg)
+    ctx.beginPath()
+    ctx.arc(cx, cy, cell * 0.44, 0, Math.PI * 2)
+    ctx.fillStyle = grad
+    ctx.fill()
+
+    ctx.beginPath()
+    ctx.arc(cx, cy, cell * 0.44, 0, Math.PI * 2)
+    ctx.strokeStyle = palette.rim + '66'
+    ctx.lineWidth = 3
+    ctx.stroke()
+
+    if (sym) {
+      ctx.font = '900 110px Arial'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillStyle = palette.fg
+      ctx.shadowColor = palette.rim
+      ctx.shadowBlur = 14
+      ctx.fillText(sym, cx, cy + 4)
+      ctx.shadowBlur = 0
+    }
+  })
+
+  return canvas
+}
+
+function buildDFateGeo(radius, palette) {
+  const s = radius / Math.sqrt(3)
+  const verts = [
+    [-s,-s, s], [ s,-s, s], [ s, s, s], [-s, s, s],
+    [-s,-s,-s], [ s,-s,-s], [ s, s,-s], [-s, s,-s],
+  ]
+
+  const totalTris = 12
+  const pos = new Float32Array(totalTris * 9)
+  const nrm = new Float32Array(totalTris * 9)
+  const uvArr = new Float32Array(totalTris * 6)
+  const faceNormals = []
+  const faceNumbers = FATE_QUADS.map(q => q.value)
+
+  const cols = 3, rows = 2
+
+  FATE_QUADS.forEach((quad, qi) => {
+    const [n0, n1, n2] = quad.normal
+    faceNormals.push(new THREE.Vector3(n0, n1, n2))
+
+    const { u0, u1, v0, v1 } = cellUV(quad.atlasIdx, cols, rows)
+
+    let uAxis, vAxis
+    if (n2 > 0.5)       { uAxis = [1,0,0]; vAxis = [0,1,0] }
+    else if (n2 < -0.5) { uAxis = [-1,0,0]; vAxis = [0,1,0] }
+    else if (n0 > 0.5)  { uAxis = [0,0,-1]; vAxis = [0,1,0] }
+    else if (n0 < -0.5) { uAxis = [0,0,1]; vAxis = [0,1,0] }
+    else if (n1 > 0.5)  { uAxis = [1,0,0]; vAxis = [0,0,-1] }
+    else                { uAxis = [1,0,0]; vAxis = [0,0,1] }
+
+    const triDefs = [
+      [quad.vi[0], quad.vi[1], quad.vi[2]],
+      [quad.vi[0], quad.vi[2], quad.vi[3]],
+    ]
+
+    triDefs.forEach((tri, ti) => {
+      const triIdx = qi * 2 + ti
+      const base = triIdx * 9
+
+      const localUVs = tri.map(vi => {
+        const v = verts[vi]
+        const pu = v[0]*uAxis[0] + v[1]*uAxis[1] + v[2]*uAxis[2]
+        const pv = v[0]*vAxis[0] + v[1]*vAxis[1] + v[2]*vAxis[2]
+        return [(pu / s + 1) / 2, (pv / s + 1) / 2]
+      })
+
+      tri.forEach((vi, j) => {
+        const vp = verts[vi]
+        pos[base + j*3]     = vp[0]
+        pos[base + j*3 + 1] = vp[1]
+        pos[base + j*3 + 2] = vp[2]
+        nrm[base + j*3]     = n0
+        nrm[base + j*3 + 1] = n1
+        nrm[base + j*3 + 2] = n2
+      })
+
+      setQuadUV(uvArr, triIdx, localUVs, u0, u1, v0, v1)
+    })
+  })
+
+  const geo = new THREE.BufferGeometry()
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+  geo.setAttribute('normal', new THREE.BufferAttribute(nrm, 3))
+  geo.setAttribute('uv', new THREE.BufferAttribute(uvArr, 2))
+
+  const atlas = buildDFateAtlas(palette)
+  const tex = new THREE.CanvasTexture(atlas)
+  tex.colorSpace = THREE.SRGBColorSpace
+  const mat = makeDiceMat(tex, palette)
+  const mesh = new THREE.Mesh(geo, mat)
+  mesh.castShadow = true
+
+  return { mesh, faceNormals, faceNumbers }
+}
+
+// ─── Geometry builder: coin ──────────────────────────────────────────────────
+const COIN_SEGMENTS = 48
+const COIN_H_RATIO = 0.08
+const COIN_PALETTE = { bg: '#a07800', face: '#7a5a00', rim: '#ffe060', fg: '#fff8e0', tint: 0xfff0b0 }
+
+function makeCoinMat(tex) {
+  return new THREE.MeshPhysicalMaterial({
+    map: tex,
+    color: new THREE.Color(COIN_PALETTE.tint),
+    emissive: new THREE.Color('#1a0a00'),
+    emissiveIntensity: 0.25,
+    roughness: 0.18,
+    metalness: 0.0,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.06,
+    sheen: 0.5,
+    sheenRoughness: 0.25,
+    sheenColor: new THREE.Color(COIN_PALETTE.rim),
+    side: THREE.DoubleSide,
+  })
+}
+
+function buildCoinAtlas() {
+  const p = COIN_PALETTE
+  const cell = 256
+  const canvas = document.createElement('canvas')
+  canvas.width = cell * 2
+  canvas.height = cell
+  const ctx = canvas.getContext('2d')
+
+  ctx.fillStyle = p.bg
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+  ;['♔', '★'].forEach((sym, i) => {
+    const cx = i * cell + cell / 2
+    const cy = cell / 2
+
+    const grad = ctx.createRadialGradient(cx, cy, 8, cx, cy, cell * 0.44)
+    grad.addColorStop(0, p.face)
+    grad.addColorStop(1, p.bg)
+    ctx.beginPath()
+    ctx.arc(cx, cy, cell * 0.44, 0, Math.PI * 2)
+    ctx.fillStyle = grad
+    ctx.fill()
+
+    ctx.beginPath()
+    ctx.arc(cx, cy, cell * 0.44, 0, Math.PI * 2)
+    ctx.strokeStyle = p.rim + '88'
+    ctx.lineWidth = 4
+    ctx.stroke()
+
+    ctx.font = '900 100px Arial'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillStyle = p.fg
+    ctx.shadowColor = p.rim
+    ctx.shadowBlur = 18
+    ctx.fillText(sym, cx, cy + 4)
+    ctx.shadowBlur = 0
+  })
+
+  return canvas
+}
+
+function buildCoinGeo(radius) {
+  const fullH = radius * COIN_H_RATIO * 2
+  // toNonIndexed() gives each triangle its own vertices — no shared vertex
+  // overwrite conflicts when remapping UVs.
+  const geo = new THREE.CylinderGeometry(radius, radius, fullH, COIN_SEGMENTS, 1, false).toNonIndexed()
+
+  // Cap UV from Three.js: u=cos(θ)·0.5+0.5, v=sin(θ)·0.5+0.5
+  // Rotate −90°: (u_r=v, v_r=1−u) aligns the symbol upright from the camera.
+  const uvAttr = geo.attributes.uv
+  for (const grp of geo.groups) {
+    for (let vi = grp.start; vi < grp.start + grp.count; vi++) {
+      const u = uvAttr.getX(vi)
+      const v = uvAttr.getY(vi)
+      if (grp.materialIndex === 1) {
+        uvAttr.setXY(vi, v * 0.5, 1 - u)
+      } else if (grp.materialIndex === 2) {
+        uvAttr.setXY(vi, 0.5 + v * 0.5, 1 - u)
+      } else {
+        uvAttr.setXY(vi, 0.03, 0.5)
+      }
+    }
+  }
+  uvAttr.needsUpdate = true
+
+  const atlas = buildCoinAtlas()
+  const tex = new THREE.CanvasTexture(atlas)
+  tex.colorSpace = THREE.SRGBColorSpace
+  const mat = makeCoinMat(tex)
+  const mesh = new THREE.Mesh(geo, mat)
+  mesh.castShadow = true
+
+  return {
+    mesh,
+    faceNormals: [new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -1, 0)],
+    faceNumbers: ['♔', '★'],
+  }
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 export function buildDie(type, radius = 1) {
   const palette = randomPalette()
   let result
   switch (type) {
-    case 'd4':  result = buildD4Geo(radius, palette);  break
-    case 'd6':  result = buildD6Geo(radius, palette);  break
-    case 'd8':  result = buildD8Geo(radius, palette);  break
-    case 'd10': result = buildD10Geo(radius, palette); break
-    case 'd20': result = buildD20Geo(radius, palette); break
+    case 'd4':    result = buildD4Geo(radius, palette);    break
+    case 'd6':    result = buildD6Geo(radius, palette);    break
+    case 'd8':    result = buildD8Geo(radius, palette);    break
+    case 'd10':   result = buildD10Geo(radius, palette);   break
+    case 'd20':   result = buildD20Geo(radius, palette);   break
+    case 'dfate': result = buildDFateGeo(radius, palette); break
+    case 'coin':  result = buildCoinGeo(radius);  break
     default: throw new Error(`Unknown die type: ${type}`)
   }
   return { ...result, type, radius }

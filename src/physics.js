@@ -72,6 +72,9 @@ export function createDiceBody(type, radius = 1) {
     const scale = radius / ICO_LEN
     const vertices = D20_RAW.map(([x, y, z]) => new CANNON.Vec3(x * scale, y * scale, z * scale))
     shape = new CANNON.ConvexPolyhedron({ vertices, faces: D20_FACES_IDX })
+  } else if (type === 'dfate') {
+    const s = radius / Math.sqrt(3)
+    shape = new CANNON.Box(new CANNON.Vec3(s, s, s))
   } else if (type === 'd10') {
     const h = radius * 0.618
     const r = radius
@@ -82,37 +85,41 @@ export function createDiceBody(type, radius = 1) {
     }
     const vertices = v.map(([x, y, z]) => new CANNON.Vec3(x, y, z))
     shape = new CANNON.ConvexPolyhedron({ vertices, faces: D10_FACES_IDX })
+  } else if (type === 'coin') {
+    shape = new CANNON.Cylinder(radius, radius, radius * 0.16, 32)
   }
 
   const body = new CANNON.Body({
     mass: 1,
     shape,
     linearDamping: 0.25,
-    angularDamping: 0.25,
-    sleepTimeLimit: 0.6,
-    sleepSpeedLimit: 0.15,
+    angularDamping: type === 'coin' ? 0.88 : 0.25,
+    sleepTimeLimit: type === 'coin' ? 0.4 : 0.6,
+    sleepSpeedLimit: type === 'coin' ? 0.25 : 0.15,
   })
   body.allowSleep = true
   return body
 }
 
-// Invisible wall segments arranged in a ring — prevent dice from escaping the tray.
-// Uses Box shapes so dice thrown from high up can fly OVER the walls, but
-// horizontal sliding after landing is blocked.
+// 4 rectangular walls matching the visible tray (12 × 9 units, 2.2 high)
 export function createWalls(world) {
-  const WALL_R = 5.15
-  const WALL_H = 1.4
-  const N = 28
-  const segW = (2 * Math.PI * WALL_R / N) * 1.08  // slight overlap between segments
+  const TRAY_W = 12, TRAY_H = 9
+  const WALL_THICK = 0.4
+  const WALL_H = 4.5
 
-  for (let i = 0; i < N; i++) {
-    const a = (i / N) * Math.PI * 2
-    const seg = new CANNON.Body({ mass: 0, type: CANNON.Body.STATIC })
-    seg.addShape(new CANNON.Box(new CANNON.Vec3(segW / 2, WALL_H / 2, 0.12)))
-    seg.position.set(Math.cos(a) * WALL_R, WALL_H / 2, Math.sin(a) * WALL_R)
-    seg.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), a)
-    world.addBody(seg)
-  }
+  const walls = [
+    { hx: TRAY_W / 2 + WALL_THICK, hy: WALL_H / 2, hz: WALL_THICK / 2, x: 0,                            z: -(TRAY_H / 2 + WALL_THICK / 2) },
+    { hx: TRAY_W / 2 + WALL_THICK, hy: WALL_H / 2, hz: WALL_THICK / 2, x: 0,                            z:  (TRAY_H / 2 + WALL_THICK / 2) },
+    { hx: WALL_THICK / 2,          hy: WALL_H / 2, hz: TRAY_H / 2,     x: -(TRAY_W / 2 + WALL_THICK / 2), z: 0 },
+    { hx: WALL_THICK / 2,          hy: WALL_H / 2, hz: TRAY_H / 2,     x:  (TRAY_W / 2 + WALL_THICK / 2), z: 0 },
+  ]
+
+  walls.forEach(({ hx, hy, hz, x, z }) => {
+    const body = new CANNON.Body({ mass: 0, type: CANNON.Body.STATIC })
+    body.addShape(new CANNON.Box(new CANNON.Vec3(hx, hy, hz)))
+    body.position.set(x, WALL_H / 2, z)
+    world.addBody(body)
+  })
 }
 
 export function syncMeshToBody(mesh, body) {
